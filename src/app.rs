@@ -1,4 +1,5 @@
 use ratatui::{buffer::Buffer, layout::{Constraint, Layout, Rect}, prelude::{Backend, Terminal}, style::{Color, Modifier, Style}, widgets::{Block, Borders, List, ListState, StatefulWidget, Widget}};
+use core::fmt;
 use std::io;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 
@@ -15,7 +16,6 @@ impl App<'_> {
     pub fn add_list(&mut self, status: StageStatus){
         self.stateful_staging.staging.push(StagingFile::new("abc.rs", status))
     }
-
 
     pub fn run(&mut self,mut terminal: Terminal<impl Backend>) -> io::Result<()> {
         loop {
@@ -62,7 +62,7 @@ impl App<'_> {
                 .add_modifier(Modifier::BOLD)
                 .add_modifier(Modifier::REVERSED)
                 .fg(Color::Blue),
-        ); 
+        );
         let staged_block = Block::default()
             .borders(Borders::ALL);
         let staged_list = List::new(self.stateful_staging.staging.iter()
@@ -74,9 +74,7 @@ impl App<'_> {
                 .add_modifier(Modifier::BOLD)
                 .add_modifier(Modifier::REVERSED)
                 .fg(Color::Blue),
-        )
-        .highlight_symbol(">>")
-        .repeat_highlight_symbol(true);
+        );
         StatefulWidget::render(staging_list, staging_area[0], buf, &mut self.stateful_staging.state);
         StatefulWidget::render(staged_list, staging_area[1], buf, &mut self.stateful_staging.staged_state);
     }
@@ -127,11 +125,12 @@ impl StatefulStagingList<'_> {
     fn previous(&mut self){
         let i: usize = match if self.using_block == StageStatus::Staging {self.state.selected()} else {self.staged_state.selected()} {
             Some(i) => {
-                        if i == 0{
-                            self.staging.len() - 1
-                        }else{
-                            i - 1
-                        }
+                let len_block_list = self.staging.iter().filter(|x| x.status == self.using_block).count();
+                if i == 0{
+                    len_block_list - 1
+                }else{
+                    i - 1
+                }
             }
             None => self.last_selected.unwrap_or(0),
         };
@@ -140,15 +139,22 @@ impl StatefulStagingList<'_> {
     fn next(&mut self){
         let i: usize = match if self.using_block == StageStatus::Staging {self.state.selected()} else {self.staged_state.selected()} {
             Some(i) => {
-                        if i >= self.staging.len() - 1{
-                            0
-                        }else{
-                            i + 1
-                        }
+                let len_block_list = self.staging.iter().filter(|x| x.status == self.using_block).count();
+                let mut index = i;
+                    if index >= len_block_list -1 {
+                        index = 0;
+                    }else{
+                        index += 1;
+                    }                    
+                index
             }
             None => self.last_selected.unwrap_or(0),
         };
-        if self.using_block == StageStatus::Staging {self.state.select(Some(i))} else {self.staged_state.select(Some(i))}
+        if self.using_block == StageStatus::Staging {
+            self.state.select(Some(i))
+        } else {
+            self.staged_state.select(Some(i))
+        }
     }
     fn stage_file(&mut self){
        let i: usize= self.state.selected().unwrap();
@@ -159,7 +165,12 @@ impl StatefulStagingList<'_> {
        }
     }
     fn change_staging_area(&mut self, stage: StageStatus){
-        self.using_block = stage
+        if stage == StageStatus::Staging{
+            self.staged_state.select(None)
+        }else {
+            self.state.select(None)
+        }
+        self.using_block = stage 
     }
 }
 
@@ -181,8 +192,18 @@ impl StagingFile<'_> {
     
 }
 
+#[derive(Debug, Clone, Copy)]
 #[derive(PartialEq)]
 pub enum StageStatus{
     Staging,
     Staged
+}
+
+impl fmt::Display for StageStatus {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            StageStatus::Staged => write!(f, "staged"),
+            StageStatus::Staging => write!(f, "staging")
+        }
+    }
 }
