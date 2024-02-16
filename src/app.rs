@@ -60,7 +60,7 @@ impl App<'_> {
             Layout::vertical([Constraint::Percentage(50), Constraint::Percentage(50)])
                 .split(staging_layout);
 
-        let staging_block = Block::default().borders(Borders::ALL);
+        let staging_block = Block::default().borders(Borders::ALL).title(" Staging ").title_alignment(ratatui::layout::Alignment::Center);
         let staging_list = List::new(
             self.stateful_staging
                 .staging
@@ -75,7 +75,7 @@ impl App<'_> {
                 .add_modifier(Modifier::REVERSED)
                 .fg(Color::Blue),
         );
-        let staged_block = Block::default().borders(Borders::ALL);
+        let staged_block = Block::default().borders(Borders::ALL).title(" Staged ").title_alignment(ratatui::layout::Alignment::Center);;
         let staged_list = List::new(
             self.stateful_staging
                 .staging
