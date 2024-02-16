@@ -1,21 +1,46 @@
-use git2::{Error, Repository, Status, StatusOptions};
-pub fn get_repository() -> Result<(), Error> {
+use std::{collections::HashSet, thread, time};
+
+use git2::{Repository, StatusOptions, Statuses};
+
+#[derive(Hash, Eq, PartialEq, Debug)]
+enum StagingState{
+    Staging,
+    Staged
+}
+
+#[derive(Hash, Eq, PartialEq, Debug)]
+struct Staging{
+    file_path: String,
+    state: StagingState
+}
+impl Staging{
+    fn new(file_path: String, state: StagingState) -> Self{
+        Self{
+            file_path: file_path,
+            state: state
+        }
+    }
+}
+
+pub fn get_repository() -> Result<(), git2::Error> {
+    let mut staging_files = HashSet::new();
     let repo = Repository::open(".")?;
     if repo.is_bare() {
-        return Err(Error::from_str("Erro"));
+        return Err(git2::Error::from_str("Erro"));
     }
     let mut opts = StatusOptions::new();
     let statuses = repo.statuses(Some(&mut opts))?;
-    for entry in statuses.iter().filter(|e| e.status() != Status::CURRENT) {
-        let istatus = match entry.status() {
-            s if s.contains(git2::Status::INDEX_NEW) => "new file: ",
-            s if s.contains(git2::Status::INDEX_MODIFIED) => "modified: ",
-            s if s.contains(git2::Status::INDEX_DELETED) => "deleted: ",
-            s if s.contains(git2::Status::INDEX_RENAMED) => "renamed: ",
-            s if s.contains(git2::Status::INDEX_TYPECHANGE) => "typechange:",
-            _ => continue,
-        };
-        println!("{}", istatus);
-    }
+    git_status(&mut staging_files, &statuses);
+
     return Ok(());
+}
+
+fn git_status(staging_file: &mut HashSet<Staging>, statuses: &Statuses){
+    loop{
+        for entry in statuses.iter() {
+            let file = entry.index_to_workdir().unwrap().old_file().path().unwrap();
+            staging_file.insert(Staging::new(file.display().to_string(), StagingState::Staging));
+        }
+        thread::sleep(time::Duration::from_millis(100))
+    }
 }
