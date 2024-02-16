@@ -1,5 +1,5 @@
 use core::fmt;
-use crossterm::event::{self, Event, KeyCode, KeyEventKind};
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
@@ -44,7 +44,12 @@ impl App<'_> {
                         KeyCode::Down => self.stateful_staging.next(),
                         KeyCode::Up => self.stateful_staging.previous(),
                         KeyCode::Enter => self.stateful_staging.stage_file(),
-                        _ => {}
+                        //Future keys
+                        _ => match key {
+                            KeyEvent{modifiers: KeyModifiers::ALT, code: KeyCode::Char('h'), kind, state} => println!("fetcH"),
+                            _ => {}
+
+                        }
                     }
                 }
             }
