@@ -22,21 +22,23 @@ impl Staging{
     }
 }
 
+#[warn(unused_imports)]
 pub fn get_repository() -> Result<(), git2::Error> {
-    let mut staging_files = HashSet::new();
+    let mut staging_files: HashSet<Staging> = HashSet::new();
     let repo = Repository::open(".")?;
     if repo.is_bare() {
         return Err(git2::Error::from_str("Erro"));
     }
     let mut opts = StatusOptions::new();
     let statuses = repo.statuses(Some(&mut opts))?;
-    git_status(&mut staging_files, &statuses);
+    //git_status(&mut staging_files, &statuses);
 
     return Ok(());
 }
 
 fn git_status(staging_file: &mut HashSet<Staging>, statuses: &Statuses){
     loop{
+        print!("teste");
         for entry in statuses.iter() {
             let file = entry.index_to_workdir().unwrap().old_file().path().unwrap();
             staging_file.insert(Staging::new(file.display().to_string(), StagingState::Staging));
